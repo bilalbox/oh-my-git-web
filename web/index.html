@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Oh My Git!</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#f4efe6" />
+    <script>
+      (function () {
+        var saved = null;
+        try { saved = localStorage.getItem("oh-my-git-theme"); } catch (error) {}
+        var theme = saved === "dark" || saved === "light"
+          ? saved
+          : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.dataset.theme = theme;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = theme === "dark" ? "#16130f" : "#f4efe6";
+      })();
+    </script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="boot">
+      <div class="boot-panel">
+        <h1>Oh My Git!</h1>
+        <p class="credit">A web port of <a href="https://github.com/git-learning-game/oh-my-git">Oh My Git!</a> by bleeptrack and blinry. <a href="https://blueoakcouncil.org/license/1.0.0">Blue Oak Model License 1.0.0</a>.</p>
+        <p id="boot-status" role="status">
+          <span id="boot-message">Starting…</span>
+          <span id="boot-percent"></span>
+        </p>
+        <div id="boot-meter" data-empty="yes" aria-hidden="true">
+          <div id="boot-bar"></div>
+        </div>
+      </div>
+    </div>
+    <main inert aria-hidden="true">
+      <div id="play">
+      <header>
+        <div class="top">
+          <p class="eyebrow">Oh My Git!</p>
+          <div class="top-actions">
+            <button type="button" class="theme" aria-pressed="false">Dark</button>
+            <button type="button" id="levels-open">Levels</button>
+          </div>
+        </div>
+        <h1 id="title">Loading</h1>
+        <p id="description"></p>
+        <p id="cli" hidden></p>
+        <p id="congrats" hidden></p>
+        <button type="button" id="next" hidden>Next level</button>
+        <p id="status" role="status">Starting…</p>
+      </header>
+      <section>
+        <h2>Goal</h2>
+        <ul id="wins"></ul>
+      </section>
+      <div id="repos"></div>
+      <div class="board">
+        <section>
+          <h2>Files</h2>
+          <div id="files"></div>
+          <form id="file-form" hidden>
+            <textarea id="file-text" spellcheck="false" aria-label="File contents"></textarea>
+            <button type="submit">Save</button>
+          </form>
+        </section>
+      </div>
+      <section id="card-section">
+        <h2>Cards</h2>
+        <div id="cards"></div>
+        <form id="commit-form" hidden>
+          <label for="commit-message">Description of what changed</label>
+          <input id="commit-message" autocomplete="off" required />
+          <button type="submit">Make the commit</button>
+        </form>
+      </section>
+      <section class="terminal-wrap">
+        <h2>yours</h2>
+        <div id="term"></div>
+        <ul id="completions" hidden role="listbox" aria-label="Completions"></ul>
+      </section>
+      </div>
+      <div id="picker" hidden>
+        <header>
+          <p class="eyebrow">Oh My Git!</p>
+          <h1>Levels</h1>
+          <p>Solved levels stay marked. A command-line badge means you finished that level without playing a card.</p>
+          <div class="top-actions">
+            <button type="button" class="theme" aria-pressed="false">Dark</button>
+            <button type="button" id="levels-close">Back to the level</button>
+          </div>
+        </header>
+        <div id="level-list"></div>
+      </div>
+      <footer class="credit">
+        <p>A web port of <a href="https://github.com/git-learning-game/oh-my-git">Oh My Git!</a> by bleeptrack and blinry, with funding from the <a href="https://www.prototypefund.de">Prototype Fund</a>. Licensed under the <a href="https://blueoakcouncil.org/license/1.0.0">Blue Oak Model License 1.0.0</a>.</p>
+      </footer>
+    </main>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

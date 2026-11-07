@@ -1,0 +1,20 @@
+Oh My Git! on the web
+
+Oh My Git! was created by bleeptrack and blinry in 2020/2021, with six months
+of funding from the Prototype Fund (https://www.prototypefund.de).
+
+The original game:
+https://github.com/git-learning-game/oh-my-git
+https://blinry.itch.io/oh-my-git
+
+This is an unofficial web port. It plays the original levels in the browser.
+Level files, card art, and node art come from the original project and stay
+under that project's license. They are not relicensed here.
+
+This port and the original game are licensed under the Blue Oak Model License
+1.0.0. The license text is LICENSE.md in this directory:
+https://blueoakcouncil.org/license/1.0.0
+
+Contribution guidelines for the original project are in CONTRIBUTING.md and
+in the original README:
+https://github.com/git-learning-game/oh-my-git/blob/main/README.md
