@@ -17,12 +17,21 @@ export function renderLevelList(host, chapters, currentId, progress, onPick) {
       if (level.id === currentId) button.setAttribute("aria-current", "true");
       button.addEventListener("click", () => onPick(level.id));
       item.append(button);
+      const marks = document.createElement("div");
+      marks.className = "marks";
+      if (solved) {
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = "Solved";
+        marks.append(badge);
+      }
       if (cli) {
         const badge = document.createElement("span");
         badge.className = "badge";
         badge.textContent = "Command line";
-        item.append(badge);
+        marks.append(badge);
       }
+      if (marks.childElementCount > 0) item.append(marks);
       list.append(item);
     }
     section.append(heading, list);

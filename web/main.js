@@ -25,13 +25,22 @@ const cardSection = document.querySelector("#card-section");
 const cardsHost = document.querySelector("#cards");
 const fileForm = document.querySelector("#file-form");
 const fileText = document.querySelector("#file-text");
+const editorHeading = document.querySelector("#editor-heading");
 const commitForm = document.querySelector("#commit-form");
 const commitLabel = commitForm.querySelector("label");
 const commitInput = document.querySelector("#commit-message");
-const commitSubmit = commitForm.querySelector("button");
+const commitSubmit = commitForm.querySelector("button[type='submit']");
+const commitCancel = document.querySelector("#commit-cancel");
 const termHost = document.querySelector("#term");
+const termHeading = document.querySelector(".terminal-wrap h2");
 const completions = document.querySelector("#completions");
 const play = document.querySelector("#play");
+const workspace = document.querySelector("#workspace");
+const missionToggle = document.querySelector("#mission-toggle");
+const missionCollapse = document.querySelector("#mission-collapse");
+const missionTally = document.querySelector("#mission-tally");
+const cardsToggle = document.querySelector("#cards-toggle");
+const cardHint = document.querySelector("#card-hint");
 const picker = document.querySelector("#picker");
 const levelList = document.querySelector("#level-list");
 const boot = document.querySelector("#boot");
@@ -42,28 +51,55 @@ const bootBar = document.querySelector("#boot-bar");
 const page = document.querySelector("main");
 
 const idle = "Play a card, edit a file, or type a command.";
+const defaultCardHint = "Drag a card onto a file, commit, or branch, or click to play.";
 const storageKey = "oh-my-git-level";
 const themeKey = "oh-my-git-theme";
 const themeButtons = document.querySelectorAll(".theme");
+const schemeMeta = document.querySelector('meta[name="color-scheme"]');
 
-function applyTheme(theme, persist) {
-  document.documentElement.dataset.theme = theme;
+function storedScheme() {
+  try {
+    const saved = localStorage.getItem(themeKey);
+    return saved === "dark" || saved === "light" ? saved : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function systemDark() {
+  return matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function renderedDark() {
+  if (schemeMeta?.content === "dark") return true;
+  if (schemeMeta?.content === "light") return false;
+  return systemDark();
+}
+
+function applyTheme() {
+  const dark = renderedDark();
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = theme === "dark" ? "#16130f" : "#f4efe6";
-  for (const button of themeButtons) {
-    const dark = theme === "dark";
-    button.textContent = dark ? "Light" : "Dark";
-    button.setAttribute("aria-pressed", dark ? "true" : "false");
-    button.setAttribute("aria-label", dark ? "Switch to light" : "Switch to dark");
-  }
-  if (persist) {
-    try { localStorage.setItem(themeKey, theme); } catch (error) {}
-  }
+  if (meta) meta.content = dark ? "#16130f" : "#f4efe6";
   term.options.theme = {
-    background: theme === "dark" ? "#0c0a08" : "#1c1915",
+    background: dark ? "#0c0a08" : "#1c1915",
     foreground: "#f3eee4",
     cursor: "#f3eee4",
   };
+}
+
+function setScheme(content) {
+  if (schemeMeta) schemeMeta.content = content;
+  applyTheme();
+}
+
+function toggleTheme() {
+  const targetDark = !renderedDark();
+  const content = targetDark === systemDark() ? "light dark" : (targetDark ? "dark" : "light");
+  try {
+    if (content === "light dark") localStorage.removeItem(themeKey);
+    else localStorage.setItem(themeKey, content);
+  } catch (error) {}
+  setScheme(content);
 }
 
 const term = new Terminal({
@@ -78,17 +114,34 @@ term.open(termHost);
 term.textarea?.setAttribute("aria-controls", "completions");
 term.textarea?.setAttribute("aria-autocomplete", "list");
 term.textarea?.setAttribute("aria-expanded", "false");
+term.attachCustomKeyEventHandler((event) => {
+  if (event.type === "keydown" && event.key === "Tab" && event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+    return false;
+  }
+  return true;
+});
 fit.fit();
-window.addEventListener("resize", () => fit.fit());
-applyTheme(document.documentElement.dataset.theme || "light", false);
-for (const button of themeButtons) {
-  button.addEventListener("click", () => {
-    applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true);
+let fitFrame = 0;
+const scheduleFit = () => {
+  if (fitFrame) return;
+  fitFrame = requestAnimationFrame(() => {
+    fitFrame = 0;
+    if (!play.hidden) fit.fit();
   });
+};
+window.addEventListener("resize", scheduleFit);
+if (typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(scheduleFit).observe(termHost);
 }
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
-  try { if (localStorage.getItem(themeKey)) return; } catch (error) { return; }
-  applyTheme(event.matches ? "dark" : "light", false);
+applyTheme();
+for (const button of themeButtons) button.addEventListener("click", toggleTheme);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (storedScheme()) return;
+  applyTheme();
+});
+window.addEventListener("storage", (event) => {
+  if (event.key !== themeKey) return;
+  setScheme(event.newValue === "dark" || event.newValue === "light" ? event.newValue : "light dark");
 });
 
 let session;
@@ -120,7 +173,49 @@ let coverLevel = false;
 
 function setStatus(text, kind = "info") {
   status.textContent = text;
+  status.title = text;
   status.dataset.kind = kind;
+}
+
+function setEditorTitle(label) {
+  editorHeading.textContent = label || "Editor";
+}
+
+function setMissionOpen(open) {
+  workspace.dataset.mission = open ? "open" : "closed";
+  missionToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  missionCollapse.setAttribute("aria-expanded", open ? "true" : "false");
+  scheduleFit();
+}
+
+function setCardsOpen(open) {
+  cardSection.dataset.collapsed = open ? "no" : "yes";
+  cardsToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  cardsToggle.textContent = open ? "Hide cards" : "Show cards";
+  scheduleFit();
+}
+
+function updateMissionTally(checks) {
+  if (!checks || checks.length === 0) {
+    missionTally.hidden = true;
+    missionTally.textContent = "";
+    delete missionTally.dataset.all;
+    return;
+  }
+  const passed = checks.filter((check) => check.passed).length;
+  missionTally.hidden = false;
+  missionTally.textContent = `${passed}/${checks.length}`;
+  missionTally.dataset.all = passed === checks.length ? "yes" : "no";
+}
+
+function inspectCard(card) {
+  if (!card) {
+    cardHint.textContent = defaultCardHint;
+    delete cardHint.dataset.active;
+    return;
+  }
+  cardHint.textContent = card.description || card.command;
+  cardHint.dataset.active = "yes";
 }
 
 function setBoot(text, kind = "info") {
@@ -150,6 +245,7 @@ function showBoot(text, kind = "info") {
   boot.style.transition = "none";
   boot.classList.remove("is-done");
   boot.hidden = false;
+  boot.inert = false;
   void boot.offsetWidth;
   boot.style.transition = "";
   page.setAttribute("inert", "");
@@ -165,9 +261,11 @@ function finishBoot() {
   const reveal = () => {
     if (generation !== bootGeneration || boot.hidden) return;
     boot.hidden = true;
+    boot.inert = true;
     page.removeAttribute("inert");
     page.removeAttribute("aria-hidden");
   };
+  boot.inert = true;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
     reveal();
     return;
@@ -221,15 +319,17 @@ function render(shot) {
     return item;
   }));
   const order = currentLevel.repos.filter((name) => shot.repos[name]);
-  renderRepos(reposHost, shot.repos, order, chooseGraph, insertAtPrompt);
+  renderRepos(reposHost, shot.repos, order, chooseGraph, insertAtPrompt, home);
   const repo = shot.repos[home];
   worktreeFiles = (repo?.files ?? []).filter((file) => file.worktree).map((file) => file.path);
   fileList = repo ? fileRows(repo) : [];
   if (openPath && !fileList.some((file) => file.path === openPath)) {
     openPath = null;
     fileForm.hidden = true;
+    setEditorTitle(null);
   }
   renderFiles(filesHost, fileList, { selected: openPath, onOpen: (path) => chooseFile(path) });
+  updateMissionTally(shot.wins);
   const solved = shot.wins.length > 0 && shot.wins.every((check) => check.passed);
   const last = levels.indexOf(currentId) === levels.length - 1;
   description.hidden = solved;
@@ -251,9 +351,11 @@ function noteSolve() {
 }
 
 function showPlay() {
+  const returnFocus = !picker.hidden;
   picker.hidden = true;
   play.hidden = false;
   fit.fit();
+  if (returnFocus) document.querySelector("#levels-open").focus();
 }
 
 function showPicker() {
@@ -263,6 +365,7 @@ function showPicker() {
   });
   play.hidden = true;
   picker.hidden = false;
+  document.querySelector("#levels-close").focus();
 }
 
 async function paint() {
@@ -369,6 +472,7 @@ function closePlan() {
   if (fileText.getAttribute("aria-label") === "Rebase plan") {
     fileForm.hidden = true;
     fileText.value = "";
+    setEditorTitle(null);
   }
 }
 
@@ -382,6 +486,7 @@ async function afterCommand(result) {
     fileForm.hidden = false;
     fileText.value = result.sequence.endsWith("\n") ? result.sequence : `${result.sequence}\n`;
     fileText.setAttribute("aria-label", "Rebase plan");
+    setEditorTitle("Rebase plan");
     fileText.focus();
     setStatus("Reorder the lines, then save.");
     prompt();
@@ -534,13 +639,18 @@ async function showLevel(id) {
     editor.clear();
     drawn = 0;
     hideCompletions();
+    setEditorTitle(null);
+    setMissionOpen(true);
+    inspectCard(null);
     home = level.repos.includes("yours") ? "yours" : level.repos[0];
+    termHeading.textContent = home;
     cardSection.hidden = level.cards.length === 0;
     renderCards(cardsHost, handFor(level), {
       onPlay: playCard,
       onDrop: dropCard,
       onDragStart: (card) => markArmed(card.command),
       onDragEnd: () => markArmed(pendingCard),
+      onInspect: inspectCard,
     });
     term.reset();
     setStatus("Setting up the level…");
@@ -624,6 +734,7 @@ async function openFile(path) {
     fileForm.hidden = false;
     fileText.value = text;
     fileText.setAttribute("aria-label", path);
+    setEditorTitle(path);
     fileText.focus();
     renderFiles(filesHost, fileList, { selected: openPath, onOpen: (nextPath) => chooseFile(nextPath) });
   });
@@ -693,6 +804,7 @@ fileForm.addEventListener("submit", (event) => {
     pendingSequence = null;
     editorDirty = false;
     fileForm.hidden = true;
+    setEditorTitle(null);
     void occupy(async () => {
       showCommand(script);
       await afterCommand(await session.run(home, script, { sequence: text }));
@@ -725,12 +837,46 @@ commitForm.addEventListener("submit", (event) => {
   runCard(plan.script, { commitMessage: plan.commitMessage });
 });
 
+function cancelCommitForm() {
+  if (commitForm.hidden) return;
+  pendingCard = null;
+  commitForm.hidden = true;
+  commitForm.reset();
+  setStatus(idle);
+}
+
+commitCancel.addEventListener("click", cancelCommitForm);
+
+missionToggle.addEventListener("click", () => {
+  setMissionOpen(workspace.dataset.mission !== "open");
+});
+
+missionCollapse.addEventListener("click", () => {
+  setMissionOpen(false);
+  missionToggle.focus();
+});
+
+cardsToggle.addEventListener("click", () => {
+  setCardsOpen(cardSection.dataset.collapsed === "yes");
+});
+
 document.querySelector("#levels-open").addEventListener("click", () => {
   if (busy || chapters.length === 0) return;
   showPicker();
 });
 
 document.querySelector("#levels-close").addEventListener("click", showPlay);
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!commitForm.hidden) {
+    event.preventDefault();
+    cancelCommitForm();
+    return;
+  }
+  if (picker.hidden) return;
+  event.preventDefault();
+  showPlay();
+});
 
 next.addEventListener("click", () => {
   const following = levels[levels.indexOf(currentId) + 1];

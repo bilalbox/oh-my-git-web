@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Oh My Git!</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#f4efe6" />
     <script>
       (function () {
         var saved = null;
         try { saved = localStorage.getItem("oh-my-git-theme"); } catch (error) {}
-        var theme = saved === "dark" || saved === "light"
-          ? saved
-          : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-        document.documentElement.dataset.theme = theme;
-        var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.content = theme === "dark" ? "#16130f" : "#f4efe6";
+        var content = saved === "dark" || saved === "light" ? saved : "light dark";
+        var scheme = document.querySelector('meta[name="color-scheme"]');
+        if (scheme) scheme.content = content;
+        var dark = content === "dark" || (content !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        var theme = document.querySelector('meta[name="theme-color"]');
+        if (theme) theme.content = dark ? "#16130f" : "#f4efe6";
       })();
     </script>
     <link rel="stylesheet" href="/style.css" />
@@ -36,50 +37,99 @@
     </div>
     <main inert aria-hidden="true">
       <div id="play">
-      <header>
-        <div class="top">
-          <p class="eyebrow">Oh My Git!</p>
+        <header class="topbar">
+          <div class="topbar-title">
+            <button type="button" id="mission-toggle" class="topbar-btn" aria-expanded="true" aria-controls="mission">
+              <svg class="icon-chevron" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                <path d="M10 3.5L5.5 8L10 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>Mission</span>
+              <span id="mission-tally" class="mission-tally" hidden></span>
+            </button>
+            <h1 id="title">Loading</h1>
+          </div>
+          <p id="status" role="status">Starting…</p>
           <div class="top-actions">
-            <button type="button" class="theme" aria-pressed="false">Dark</button>
+            <button type="button" id="next" hidden>Next level</button>
+            <button type="button" class="theme"><span class="to-dark"><span class="visually-hidden">Switch to </span>Dark</span><span class="to-light"><span class="visually-hidden">Switch to </span>Light</span></button>
             <button type="button" id="levels-open">Levels</button>
           </div>
+        </header>
+
+        <div id="workspace" class="workspace" data-mission="open">
+          <aside id="mission" aria-label="Mission and goals">
+            <div class="pane-head">
+              <h2>Mission</h2>
+              <button type="button" id="mission-collapse" class="pane-action" aria-expanded="true" aria-controls="mission">Hide</button>
+            </div>
+            <div class="mission-body">
+              <p id="description"></p>
+              <p id="cli" hidden></p>
+              <p id="congrats" hidden></p>
+              <section class="goals-block">
+                <h2>Goal</h2>
+                <ul id="wins"></ul>
+              </section>
+              <footer class="credit">
+                <p>A web port of <a href="https://github.com/git-learning-game/oh-my-git">Oh My Git!</a> by bleeptrack and blinry, with funding from the <a href="https://www.prototypefund.de">Prototype Fund</a>. Licensed under the <a href="https://blueoakcouncil.org/license/1.0.0">Blue Oak Model License 1.0.0</a>.</p>
+              </footer>
+            </div>
+          </aside>
+
+          <section class="board" aria-label="Files and editor">
+            <div class="files-pane">
+              <div class="pane-head">
+                <h2>Files</h2>
+              </div>
+              <div id="files"></div>
+            </div>
+            <div class="editor-pane">
+              <div class="pane-head">
+                <h2 id="editor-heading">Editor</h2>
+              </div>
+              <form id="file-form" hidden>
+                <textarea id="file-text" spellcheck="false" aria-label="File contents"></textarea>
+                <div class="editor-actions">
+                  <button type="submit">Save</button>
+                </div>
+              </form>
+              <p id="editor-empty" class="editor-empty">Select a file above to view or edit it.</p>
+            </div>
+          </section>
+
+          <section class="graph-pane" aria-label="Commit graph">
+            <div id="repos"></div>
+          </section>
+
+          <section class="terminal-wrap" aria-label="Terminal">
+            <div class="pane-head">
+              <h2>yours</h2>
+            </div>
+            <div class="terminal-stage">
+              <div id="term"></div>
+              <ul id="completions" hidden role="listbox" aria-label="Completions"></ul>
+            </div>
+          </section>
         </div>
-        <h1 id="title">Loading</h1>
-        <p id="description"></p>
-        <p id="cli" hidden></p>
-        <p id="congrats" hidden></p>
-        <button type="button" id="next" hidden>Next level</button>
-        <p id="status" role="status">Starting…</p>
-      </header>
-      <section>
-        <h2>Goal</h2>
-        <ul id="wins"></ul>
-      </section>
-      <div id="repos"></div>
-      <div class="board">
-        <section>
-          <h2>Files</h2>
-          <div id="files"></div>
-          <form id="file-form" hidden>
-            <textarea id="file-text" spellcheck="false" aria-label="File contents"></textarea>
-            <button type="submit">Save</button>
+
+        <section id="card-section" aria-label="Cards">
+          <div class="cards-bar">
+            <div class="cards-bar-left">
+              <h2>Cards</h2>
+              <p id="card-hint" class="card-hint">Drag a card onto a file, commit, or branch, or click to play.</p>
+            </div>
+            <button type="button" id="cards-toggle" class="pane-action" aria-expanded="true" aria-controls="cards">Hide cards</button>
+          </div>
+          <div id="cards"></div>
+          <form id="commit-form" hidden>
+            <label for="commit-message">Description of what changed</label>
+            <div class="commit-form-row">
+              <input id="commit-message" autocomplete="off" required />
+              <button type="submit">Make the commit</button>
+              <button type="button" id="commit-cancel" class="secondary-action">Cancel</button>
+            </div>
           </form>
         </section>
-      </div>
-      <section id="card-section">
-        <h2>Cards</h2>
-        <div id="cards"></div>
-        <form id="commit-form" hidden>
-          <label for="commit-message">Description of what changed</label>
-          <input id="commit-message" autocomplete="off" required />
-          <button type="submit">Make the commit</button>
-        </form>
-      </section>
-      <section class="terminal-wrap">
-        <h2>yours</h2>
-        <div id="term"></div>
-        <ul id="completions" hidden role="listbox" aria-label="Completions"></ul>
-      </section>
       </div>
       <div id="picker" hidden>
         <header>
@@ -87,15 +137,12 @@
           <h1>Levels</h1>
           <p>Solved levels stay marked. A command-line badge means you finished that level without playing a card.</p>
           <div class="top-actions">
-            <button type="button" class="theme" aria-pressed="false">Dark</button>
+            <button type="button" class="theme"><span class="to-dark"><span class="visually-hidden">Switch to </span>Dark</span><span class="to-light"><span class="visually-hidden">Switch to </span>Light</span></button>
             <button type="button" id="levels-close">Back to the level</button>
           </div>
         </header>
         <div id="level-list"></div>
       </div>
-      <footer class="credit">
-        <p>A web port of <a href="https://github.com/git-learning-game/oh-my-git">Oh My Git!</a> by bleeptrack and blinry, with funding from the <a href="https://www.prototypefund.de">Prototype Fund</a>. Licensed under the <a href="https://blueoakcouncil.org/license/1.0.0">Blue Oak Model License 1.0.0</a>.</p>
-      </footer>
     </main>
     <script type="module" src="/main.js"></script>
   </body>

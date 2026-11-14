@@ -70,7 +70,7 @@ async function commitStaged(message) {
 async function addFile(name) {
   await page.getByRole("button", { name: "git add [file]" }).click();
   await page.getByRole("button", { name, exact: true }).click();
-  await page.waitForFunction((file) => document.querySelector(`#files button[aria-label="${file}"]`)?.dataset.state === "staged", name);
+  await page.waitForFunction((file) => document.querySelector(`#files button[data-path="${file}"]`)?.dataset.state === "staged", name);
 }
 
 async function resetFile(name) {
@@ -310,7 +310,7 @@ try {
   console.log("compare solved");
   await onward("Add new files to the index");
 
-  await page.waitForFunction(() => document.querySelector("#files button[aria-label='candle']")?.dataset.state === "new");
+  await page.waitForFunction(() => document.querySelector("#files button[data-path='candle']")?.dataset.state === "new");
   await addFile("candle");
   await commitStaged("Add the candle");
   await waitWins(true);
@@ -318,7 +318,7 @@ try {
   await onward("Update files in the index");
 
   await replaceFile("candle", "The candle has been blown out.");
-  await page.waitForFunction(() => document.querySelector("#files button[aria-label='candle']")?.dataset.state === "changed");
+  await page.waitForFunction(() => document.querySelector("#files button[data-path='candle']")?.dataset.state === "changed");
   await addFile("candle");
   await commitStaged("Blow out the candle");
   await waitWins(true);
@@ -359,7 +359,7 @@ try {
 
   await makeCommit("The bike shed should be green");
   await pull();
-  await page.waitForFunction(() => document.querySelector("#files button[aria-label='file']")?.dataset.state === "conflict");
+  await page.waitForFunction(() => document.querySelector("#files button[data-path='file']")?.dataset.state === "conflict");
   await replaceFile("file", "The bike shed should be green and blue.");
   await makeCommit("A compromise");
   await push();
@@ -392,7 +392,7 @@ try {
   console.log("reorder solved");
   await onward("Restore a deleted file");
 
-  await page.waitForFunction(() => document.querySelector("#files button[aria-label='essay']")?.dataset.state === "deleted");
+  await page.waitForFunction(() => document.querySelector("#files button[data-path='essay']")?.dataset.state === "deleted");
   await page.getByRole("button", { name: "git checkout [commit, ref]" }).click();
   await page.getByRole("button", { name: "essay", exact: true }).click();
   await waitWins(true);
@@ -439,7 +439,7 @@ try {
 
   await page.getByRole("button", { name: "git clone ../[remote] ." }).click();
   await page.getByRole("button", { name: "friend", exact: true }).click();
-  await page.waitForFunction(() => document.querySelector("#files button[aria-label='file']"));
+  await page.waitForFunction(() => document.querySelector("#files button[data-path='file']"));
   await page.getByRole("button", { name: "git branch [string]" }).click();
   await page.locator("#commit-message").fill("solution");
   await page.getByRole("button", { name: "Play card" }).click();
@@ -511,7 +511,7 @@ try {
   await onward("Merging popped stash");
 
   await type("git stash pop");
-  await page.waitForFunction(() => document.querySelector("#files button[aria-label='recipe']")?.dataset.state === "conflict");
+  await page.waitForFunction(() => document.querySelector("#files button[data-path='recipe']")?.dataset.state === "conflict");
   await replaceFile("recipe", "Apple Pie:\n- 4 Apples\n- 500g Flour\n- Pinch of Salt");
   await makeCommit("Both ingredients");
   await type("git stash clear");

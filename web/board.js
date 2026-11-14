@@ -14,6 +14,7 @@ function simFor(repoName) {
       bodies: new Map(),
       panel: null,
       origin: { x: 0, y: 0 },
+      scroll: { left: 0, top: 0 },
       edgeKey: "",
       asleep: true,
       still: 0,
@@ -22,6 +23,22 @@ function simFor(repoName) {
     sims.set(repoName, sim);
   }
   return sim;
+}
+
+function isContainedScroll(host) {
+  const style = getComputedStyle(host);
+  return style.overflowY === "auto" || style.overflowY === "scroll" || style.overflowX === "auto" || style.overflowX === "scroll";
+}
+
+function scrollGraphBy(host, sim, dx, dy) {
+  if (dx === 0 && dy === 0) return;
+  if (isContainedScroll(host)) {
+    host.scrollBy(dx, dy);
+    sim.scroll.left = host.scrollLeft;
+    sim.scroll.top = host.scrollTop;
+    return;
+  }
+  window.scrollBy(dx, dy);
 }
 
 function stopSim(sim) {
@@ -102,6 +119,79 @@ function pointerDrag(element, { onStart, onMove, onDrop, onCancel }) {
   });
 }
 
+const dropSelector = "button.commit, button.ref, button.remote, #files button";
+
+function acceptsDrop(element) {
+  const armed = document.querySelector("#repos")?.dataset.armed ?? "no";
+  const filesArmed = document.querySelector("#files")?.dataset.armed === "yes";
+  const home = element.closest(".repo[data-home='yes']");
+  if (element.matches("button.commit")) return Boolean(home) && (armed === "commit" || armed === "either");
+  if (element.matches("button.ref")) return Boolean(home) && (armed === "ref" || armed === "either");
+  if (element.matches("button.remote")) return armed === "remote";
+  if (element.matches("#files button")) return filesArmed;
+  return false;
+}
+
+function hotspot(element) {
+  if (element.matches(".commit")) return element.querySelector(".dot") ?? element;
+  return element;
+}
+
+function nearestValid(x, y, limit) {
+  let best = null;
+  let bestDist = limit + 1;
+  for (const element of document.querySelectorAll(dropSelector)) {
+    if (!acceptsDrop(element)) continue;
+    const rect = element.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) continue;
+    const dx = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0;
+    const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+    const dist = Math.hypot(dx, dy);
+    if (dist < bestDist) {
+      best = element;
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+
+function coveredValid(ghostRect) {
+  const pad = 10;
+  const left = ghostRect.left - pad;
+  const right = ghostRect.right + pad;
+  const top = ghostRect.top - pad;
+  const bottom = ghostRect.bottom + pad;
+  const midX = (ghostRect.left + ghostRect.right) / 2;
+  const midY = (ghostRect.top + ghostRect.bottom) / 2;
+  let best = null;
+  let bestDist = Infinity;
+  for (const element of document.querySelectorAll(dropSelector)) {
+    if (!acceptsDrop(element)) continue;
+    const rect = hotspot(element).getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    if (cx < left || cx > right || cy < top || cy > bottom) continue;
+    const dist = Math.hypot(cx - midX, cy - midY);
+    if (dist < bestDist) {
+      best = element;
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+
+function dropTargetAt(x, y, ghost) {
+  const previous = ghost.style.visibility;
+  ghost.style.visibility = "hidden";
+  try {
+    const direct = document.elementFromPoint(x, y)?.closest(dropSelector) ?? null;
+    if (direct) return acceptsDrop(direct) ? direct : null;
+    return nearestValid(x, y, 18) ?? coveredValid(ghost.getBoundingClientRect());
+  } finally {
+    ghost.style.visibility = previous;
+  }
+}
+
 function readTarget(element) {
   const ref = element?.closest(".ref");
   if (ref?.dataset.full) {
@@ -118,7 +208,7 @@ function readTarget(element) {
     return { repo, kind: "remote", name: repo };
   }
   const file = element?.closest("#files button");
-  if (file) return { kind: "file", path: file.getAttribute("aria-label") };
+  if (file) return { kind: "file", path: file.dataset.path };
   return null;
 }
 
@@ -219,6 +309,7 @@ export function renderGraph(host, repoName, repo, onChoose, onInsert) {
 
   const rows = new Map();
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let restoreScroll = true;
 
   const paint = () => {
     const bodies = [...sim.bodies.values()];
@@ -261,9 +352,14 @@ export function renderGraph(host, repoName, repo, onChoose, onInsert) {
       if (from && to) link.route.setAttribute("points", pointsOf(straight(from, to)));
     }
     applyScale();
+    if (restoreScroll) {
+      restoreScroll = false;
+      host.scrollLeft = sim.scroll.left;
+      host.scrollTop = sim.scroll.top;
+    }
     if (grewX > 0 || grewY > 0) {
       const factor = graphScale(repoName);
-      window.scrollBy(grewX * factor, grewY * factor);
+      scrollGraphBy(host, sim, grewX * factor, grewY * factor);
     }
   };
 
@@ -385,13 +481,17 @@ export function renderGraph(host, repoName, repo, onChoose, onInsert) {
 
   frame.append(stage);
   host.append(frame);
+  host.addEventListener("scroll", () => {
+    sim.scroll.left = host.scrollLeft;
+    sim.scroll.top = host.scrollTop;
+  }, { passive: true });
   if (reduceMotion && !sim.asleep) settleNow();
   else {
     paint();
     if (!sim.asleep) wake();
   }
   host.addEventListener("wheel", (event) => {
-    if (event.deltaY === 0) return;
+    if (event.deltaY === 0 || (!event.ctrlKey && !event.metaKey)) return;
     const current = graphScale(repoName);
     const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaMode === 2 ? event.deltaY * host.clientHeight : event.deltaY;
     const next = Math.min(2, Math.max(0.3, current - (delta / 100) * 0.05));
@@ -403,35 +503,56 @@ export function renderGraph(host, repoName, repo, onChoose, onInsert) {
     scales.set(repoName, next);
     applyScale();
     const after = stage.getBoundingClientRect();
-    window.scrollBy(after.left + layoutX * next - event.clientX, after.top + layoutY * next - event.clientY);
+    scrollGraphBy(host, sim, after.left + layoutX * next - event.clientX, after.top + layoutY * next - event.clientY);
   }, { passive: false });
 }
 
 export function renderFiles(host, files, { selected, onOpen }) {
+  const scrollTop = host.scrollTop;
   host.replaceChildren();
   const list = document.createElement("ul");
   for (const file of files) {
     const item = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = file.path;
-    button.setAttribute("aria-label", file.path);
+    button.dataset.path = file.path;
     button.dataset.state = file.state;
+    const fileName = document.createElement("span");
+    fileName.className = "file-name";
+    fileName.textContent = file.path;
+    button.append(fileName);
+    if (file.state !== "same") {
+      const state = document.createElement("span");
+      state.className = "file-state";
+      state.textContent = file.state;
+      button.append(state);
+    }
     if (file.path === selected) button.setAttribute("aria-current", "true");
     button.addEventListener("click", () => onOpen(file.path));
     item.append(button);
     list.append(item);
   }
   host.append(list);
+  host.scrollTop = scrollTop;
 }
 
-export function renderRepos(host, repos, order, onChoose, onInsert) {
+export function renderRepos(host, repos, order, onChoose, onInsert, homeName) {
+  for (const section of host.querySelectorAll(".repo")) {
+    const repoName = section.dataset.repo;
+    const graphEl = section.querySelector(".graph");
+    if (repoName && graphEl && sims.has(repoName)) {
+      const sim = sims.get(repoName);
+      sim.scroll.left = graphEl.scrollLeft;
+      sim.scroll.top = graphEl.scrollTop;
+    }
+  }
   host.replaceChildren();
   const several = order.length > 1;
   for (const name of order) {
     const section = document.createElement("section");
     section.className = "repo";
     section.dataset.repo = name;
+    if (name === homeName) section.dataset.home = "yes";
     const heading = document.createElement("h2");
     if (several) {
       heading.className = "repo-name";
@@ -452,20 +573,11 @@ export function renderRepos(host, repos, order, onChoose, onInsert) {
   }
 }
 
-function fanAngles(count) {
-  if (count <= 1) return [0];
-  const total = Math.min(32, 6 * (count - 1));
-  const step = total / (count - 1);
-  return Array.from({ length: count }, (_, index) => -total / 2 + step * index);
-}
-
-export function renderCards(host, cards, { onPlay, onDrop, onDragStart, onDragEnd }) {
+export function renderCards(host, cards, { onPlay, onDrop, onDragStart, onDragEnd, onInspect }) {
   host.replaceChildren();
-  const angles = fanAngles(cards.length);
-  cards.forEach((card, index) => {
+  cards.forEach((card) => {
     const block = document.createElement("article");
     block.className = "card";
-    block.style.setProperty("--fan", `${angles[index]}deg`);
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.command = card.command;
@@ -486,6 +598,13 @@ export function renderCards(host, cards, { onPlay, onDrop, onDragStart, onDragEn
       over?.classList.remove("is-over");
       over = null;
     };
+    const endDrag = () => {
+      ghost?.remove();
+      ghost = null;
+      clearOver();
+      block.classList.remove("is-dragging");
+      onDragEnd?.();
+    };
     pointerDrag(button, {
       onStart: (event) => {
         onDragStart?.(card);
@@ -493,36 +612,38 @@ export function renderCards(host, cards, { onPlay, onDrop, onDragStart, onDragEn
         grab = { x: event.clientX - rect.left, y: event.clientY - rect.top };
         ghost = block.cloneNode(true);
         ghost.classList.add("card-ghost");
+        ghost.setAttribute("aria-hidden", "true");
         ghost.querySelector("button")?.removeAttribute("disabled");
+        ghost.querySelector("p")?.remove();
+        ghost.style.left = `${rect.left}px`;
+        ghost.style.top = `${rect.top}px`;
         document.body.append(ghost);
+        block.classList.add("is-dragging");
       },
       onMove: (_dx, _dy, event) => {
         if (!ghost) return;
         ghost.style.left = `${event.clientX - grab.x}px`;
         ghost.style.top = `${event.clientY - grab.y}px`;
-        const hit = document.elementFromPoint(event.clientX, event.clientY);
-        const next = hit?.closest(".commit, .ref, button.remote, #files button") ?? null;
+        const next = dropTargetAt(event.clientX, event.clientY, ghost);
         if (over !== next) {
           over?.classList.remove("is-over");
-          over = next instanceof Element ? next : null;
+          over = next;
           over?.classList.add("is-over");
         }
       },
       onDrop: (event) => {
-        const target = readTarget(document.elementFromPoint(event.clientX, event.clientY));
-        ghost?.remove();
-        ghost = null;
-        clearOver();
-        onDragEnd?.();
+        const target = readTarget(ghost ? dropTargetAt(event.clientX, event.clientY, ghost) : null);
+        endDrag();
         if (target) onDrop?.(card, target);
       },
       onCancel: () => {
-        ghost?.remove();
-        ghost = null;
-        clearOver();
-        onDragEnd?.();
+        endDrag();
       },
     });
+    button.addEventListener("pointerenter", () => onInspect?.(card));
+    button.addEventListener("pointerleave", () => onInspect?.(null));
+    button.addEventListener("focus", () => onInspect?.(card));
+    button.addEventListener("blur", () => onInspect?.(null));
     button.addEventListener("click", () => onPlay?.(card));
     block.append(button);
     if (card.description) {

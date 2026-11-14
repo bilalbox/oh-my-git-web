@@ -1,42 +1,69 @@
 :root {
-  color-scheme: light;
-  --paper: #f4efe6;
-  --ink: #1c1915;
-  --muted: #6d645b;
-  --line: #e2d9cc;
-  --field: #fffdf8;
-  --field-line: #c8bba8;
-  --green: #2f6b45;
-  --status: #3f5c4b;
-  --error: #8c2f2f;
-  --badge: #6b5424;
-  --staged: #2f4d6b;
-  --lane: #7d7a1e;
-  --commit: #c2bf26;
-  --well: #1c1915;
-  --card-shadow: 0 12px 28px rgba(28, 25, 21, 0.14);
+  color-scheme: light dark;
+  --paper: light-dark(#f4efe6, #16130f);
+  --ink: light-dark(#1c1915, #f3eee4);
+  --muted: light-dark(#6d645b, #c4b5a4);
+  --line: light-dark(#e2d9cc, #3c342c);
+  --field: light-dark(#fffdf8, #241f1a);
+  --field-line: light-dark(#c8bba8, #5c5146);
+  --green: light-dark(#2f6b45, #8fbf9a);
+  --status: light-dark(#3f5c4b, #9dccab);
+  --error: light-dark(#8c2f2f, #f0a8a0);
+  --badge: light-dark(#6b5424, #e6c98a);
+  --staged: light-dark(#2f4d6b, #9eb6d4);
+  --lane: light-dark(#7d7a1e, #d5d16a);
+  --commit: light-dark(#918212, #c2bf26);
+  --well: light-dark(#1c1915, #0c0a08);
+  --card-shadow: 0 12px 28px light-dark(rgb(28 25 21 / 14%), rgb(0 0 0 / 42%));
+  --ease: cubic-bezier(0.2, 0, 0, 1);
   color: var(--ink);
   background: var(--paper);
   font-family: "Iowan Old Style", Palatino, "Palatino Linotype", serif;
   scrollbar-color: var(--muted) transparent;
 }
 
-:root[data-theme="dark"] {
+:root:has(> head > meta[name="color-scheme"][content="dark"]) {
   color-scheme: dark;
-  --paper: #16130f;
-  --ink: #f3eee4;
-  --muted: #c4b5a4;
-  --line: #3c342c;
-  --field: #241f1a;
-  --field-line: #5c5146;
-  --green: #8fbf9a;
-  --status: #9dccab;
-  --error: #f0a8a0;
-  --badge: #e6c98a;
-  --staged: #9eb6d4;
-  --lane: #d5d16a;
-  --well: #0c0a08;
-  --card-shadow: 0 14px 32px rgba(0, 0, 0, 0.42);
+}
+
+:root:has(> head > meta[name="color-scheme"][content="light"]) {
+  color-scheme: light;
+}
+
+@media (forced-colors: active) {
+  :root {
+    --paper: Canvas;
+    --ink: CanvasText;
+    --muted: GrayText;
+    --line: CanvasText;
+    --field: Field;
+    --field-line: ButtonText;
+    --green: LinkText;
+    --status: CanvasText;
+    --error: LinkText;
+    --badge: CanvasText;
+    --staged: LinkText;
+    --lane: CanvasText;
+    --commit: Highlight;
+    --well: Canvas;
+    --card-shadow: none;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
 }
 
 ::selection {
@@ -123,19 +150,74 @@ html:has(#boot:not([hidden])) {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  button, .credit a, .graph .ref, .graph .dot {
+    transition:
+      background-color 140ms var(--ease),
+      color 140ms var(--ease),
+      box-shadow 140ms var(--ease),
+      transform 140ms var(--ease);
+  }
+
+  #level-list li,
+  #level-list li::before,
+  #files li {
+    transition:
+      background-color 140ms var(--ease),
+      border-color 140ms var(--ease);
+  }
+
+  #levels-open:active, #levels-close:active, .theme:active,
+  #mission-toggle:active, #mission-collapse:active, #cards-toggle:active,
+  #next:active:not(:disabled),
+  #file-form button:active, #commit-form button:active {
+    transform: translateY(1px);
+  }
+
+  .icon-chevron {
+    transition: transform 160ms var(--ease);
+  }
+
+  .graph .commit:focus-visible:not(.is-over) .dot {
+    transform: scale(1.08);
+  }
+
+  .card {
+    transition: opacity 160ms var(--ease);
+  }
+
+  .card button {
+    transition:
+      transform 160ms var(--ease),
+      background-color 140ms var(--ease),
+      color 140ms var(--ease),
+      border-color 140ms var(--ease),
+      box-shadow 160ms var(--ease);
+  }
+
   #boot {
-    transition: opacity 180ms cubic-bezier(0.2, 0, 0, 1);
+    transition: opacity 180ms var(--ease);
   }
 
   #boot-bar {
-    transition: transform 180ms cubic-bezier(0.2, 0, 0, 1);
+    transition: transform 180ms var(--ease);
   }
 }
 
 main {
-  max-width: 960px;
+  min-height: 100dvh;
+}
+
+#picker {
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 32px 20px 48px;
+  padding: 32px 24px 56px;
+}
+
+#play {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
 }
 
 h1, h2, p { margin: 0; }
@@ -165,62 +247,187 @@ h2 {
 }
 
 .credit {
-  margin-top: 28px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.8rem;
-  line-height: 1.45;
+  font-size: 0.72rem;
+  line-height: 1.4;
   color: var(--muted);
 }
 
 .credit a {
   color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+@media (hover: hover) {
+  .credit a:hover { color: var(--ink); }
 }
 
 #boot .credit {
   margin-top: 12px;
+  padding-top: 0;
+  border-top: 0;
+  font-size: 0.8rem;
 }
 
-.top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  align-items: center;
   gap: 16px;
-  margin-bottom: 8px;
+  min-height: 52px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.topbar-title h1 {
+  font-size: clamp(1.15rem, 1.5vw, 1.4rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 5px 10px;
+  border: 1px solid var(--field-line);
+  border-radius: 6px;
+  background: var(--field);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.topbar-btn[aria-expanded="false"] .icon-chevron {
+  transform: rotate(180deg);
+}
+
+.mission-tally {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.mission-tally[data-all="yes"] {
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--green);
 }
 
 .top-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: none;
 }
 
 #picker .top-actions { margin-top: 16px; }
 
 #levels-open, #levels-close, .theme {
-  padding: 6px 12px;
+  padding: 5px 11px;
   border: 1px solid var(--ink);
+  border-radius: 6px;
   background: transparent;
   color: inherit;
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   cursor: pointer;
 }
 
-#levels-open:hover, #levels-close:hover, .theme:hover { background: var(--line); }
+@media (hover: hover) {
+  #levels-open:hover, #levels-close:hover, .theme:hover, .topbar-btn:hover {
+    background: color-mix(in srgb, var(--ink) 10%, transparent);
+  }
+}
+
+#levels-open:active, #levels-close:active, .theme:active, .topbar-btn:active {
+  background: color-mix(in srgb, var(--ink) 16%, transparent);
+}
+
+.theme .to-light { display: none; }
+
+@media (prefers-color-scheme: dark) {
+  :root:has(> head > meta[name="color-scheme"][content="light dark"]) .theme .to-dark { display: none; }
+  :root:has(> head > meta[name="color-scheme"][content="light dark"]) .theme .to-light { display: inline; }
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .theme .to-dark { display: none; }
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .theme .to-light { display: inline; }
+
+@media (pointer: coarse) {
+  #levels-open, #levels-close, .theme, #next,
+  #mission-toggle, #mission-collapse, #cards-toggle, #commit-cancel,
+  #file-form button, #commit-form button,
+  #level-list button, #files button, #completions button {
+    min-block-size: 44px;
+  }
+
+  .graph .commit { position: relative; }
+
+  .graph .commit::before {
+    content: "";
+    position: absolute;
+    inset-block: -8px;
+    inset-inline: 0;
+  }
+}
 
 #picker header p {
   margin-top: 12px;
   line-height: 1.45;
 }
 
+#level-list {
+  display: grid;
+  gap: 28px 36px;
+  margin-top: 28px;
+}
+
+@media (min-width: 760px) {
+  #level-list {
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    align-items: start;
+  }
+}
+
 #level-list ul { margin: 0; padding: 0; list-style: none; }
 
 #level-list li {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   border-top: 1px solid var(--line);
+}
+
+#level-list li::before {
+  content: "";
+  position: absolute;
+  inset: 1px -10px;
+  z-index: -1;
+  border-radius: 6px;
+  pointer-events: none;
 }
 
 #level-list button {
@@ -237,7 +444,37 @@ h2 {
 }
 
 #level-list button[data-solved="yes"] { color: var(--green); }
+
+.marks {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
 #level-list button[aria-current="true"] { font-weight: 600; }
+
+@media (hover: hover) {
+  #level-list li:has(button:hover),
+  #level-list li:has(button:hover) + li {
+    border-top-color: transparent;
+  }
+
+  #level-list li:has(button:hover)::before {
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+  }
+}
+
+#level-list li:has(button:active)::before {
+  background: color-mix(in srgb, var(--ink) 11%, transparent);
+}
+
+#level-list li:has(button:focus-visible),
+#level-list li:has(button:focus-visible) + li {
+  border-top-color: transparent;
+}
+
+#level-list li:has(button:focus-visible)::before {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
 
 .badge {
   flex: none;
@@ -249,34 +486,151 @@ h2 {
 }
 
 #description, #cli, #congrats {
-  margin-top: 12px;
+  margin-top: 0;
   white-space: pre-wrap;
-  line-height: 1.45;
+  font-size: 0.96rem;
+  line-height: 1.48;
+}
+
+#cli {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+#congrats {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--green) 50%, var(--line));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--green) 10%, var(--field));
+  color: var(--ink);
 }
 
 #next {
-  margin-top: 16px;
-  padding: 8px 14px;
+  margin-top: 0;
+  padding: 5px 12px;
   border: 1px solid var(--ink);
+  border-radius: 6px;
   background: var(--ink);
   color: var(--paper);
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 500;
   cursor: pointer;
 }
 
 #next:disabled { cursor: default; opacity: 0.55; }
 
+@media (hover: hover) {
+  #next:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--paper) 18%, var(--ink));
+  }
+}
+
+#next:active:not(:disabled) {
+  background: color-mix(in srgb, var(--paper) 6%, var(--ink));
+}
+
 #status {
-  margin-top: 12px;
+  margin: 0;
+  min-width: 0;
+  justify-self: start;
+  max-width: 100%;
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--status);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #status[data-kind="error"] { color: var(--error); }
 
-section { margin-top: 28px; }
+.pane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+.pane-head h2 {
+  margin: 0;
+}
+
+.pane-action,
+.secondary-action {
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .pane-action:hover,
+  .secondary-action:hover {
+    color: var(--ink);
+    border-color: var(--field-line);
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+  }
+}
+
+.workspace {
+  display: grid;
+  min-height: 0;
+  overflow: hidden;
+  grid-template-columns: minmax(230px, min(18%, 275px)) minmax(220px, min(20%, 310px)) minmax(360px, 1fr) minmax(300px, min(26%, 440px));
+}
+
+.workspace[data-mission="closed"] {
+  grid-template-columns: minmax(240px, min(22%, 330px)) minmax(400px, 1fr) minmax(320px, min(28%, 460px));
+}
+
+.workspace[data-mission="closed"] #mission {
+  display: none;
+}
+
+.workspace > * + * {
+  box-shadow: inset 1px 0 0 var(--line);
+}
+
+.workspace[data-mission="closed"] > .board {
+  box-shadow: none;
+}
+
+#mission {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: color-mix(in srgb, var(--field) 45%, var(--paper));
+}
+
+.mission-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.goals-block {
+  margin-top: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
 
 #wins {
   margin: 0;
@@ -285,37 +639,58 @@ section { margin-top: 28px; }
 }
 
 #wins li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   padding: 8px 0;
   border-top: 1px solid var(--line);
   font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 #wins li::before {
-  display: inline-block;
-  width: 2.4rem;
+  flex: none;
+  width: 2.1rem;
   color: var(--muted);
+  font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
 }
 
 #wins li[data-passed="no"]::before { content: "no"; }
-#wins li[data-passed="yes"]::before { content: "yes"; color: var(--green); }
+#wins li[data-passed="yes"]::before { content: "yes"; color: var(--green); font-weight: 600; }
 
-.terminal-wrap { position: relative; }
+.terminal-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  margin-top: 0;
+  background: var(--paper);
+}
 
-.terminal-wrap #term {
-  height: 320px;
+.terminal-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   padding: 8px;
   background: var(--well);
-  border-radius: 8px;
+}
+
+.terminal-wrap #term {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: var(--well);
 }
 
 #completions {
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: 36px;
+  bottom: 14px;
   z-index: 2;
-  max-height: 210px;
+  max-height: 220px;
   margin: 0;
   padding: 4px;
   overflow: auto;
@@ -343,9 +718,19 @@ section { margin-top: 28px; }
   cursor: pointer;
 }
 
-#completions button[aria-selected="true"] { background: #3a342c; }
+#completions button[aria-selected="true"] {
+  background: color-mix(in srgb, #f4efe6 18%, #29241f);
+}
 
-#completions button:hover { background: #4a433a; }
+@media (hover: hover) {
+  #completions button:hover {
+    background: color-mix(in srgb, #f4efe6 10%, #29241f);
+  }
+
+  #completions button[aria-selected="true"]:hover {
+    background: color-mix(in srgb, #f4efe6 26%, #29241f);
+  }
+}
 
 #completions button:focus-visible {
   outline: 2px solid #f4efe6;
@@ -367,40 +752,101 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
   outline-offset: 2px;
 }
 
+.graph-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  margin-top: 0;
+  background: var(--paper);
+}
+
 .graph {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  padding-bottom: 8px;
+  padding: 14px;
   scrollbar-color: var(--muted) transparent;
 }
 
 .graph .frame { position: relative; }
 
 #repos {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  gap: 28px;
+  grid-template-columns: 1fr;
+  grid-auto-rows: minmax(0, 1fr);
 }
 
-@media (min-width: 860px) {
-  #repos:has(> section + section) { grid-template-columns: 1fr 1fr; }
+.repo {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  margin-top: 0;
+  background: var(--paper);
+}
+
+.repo + .repo {
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+.repo > h2 {
+  margin: 0;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.repo[data-home="yes"] > h2.repo-name::after {
+  content: "local";
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--green);
 }
 
 h2.repo-name {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink);
 }
 
 h2.repo-name .remote {
-  padding: 0;
+  padding: 2px 7px;
+  margin: -2px -7px;
   border: 0;
+  border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;
   cursor: pointer;
 }
 
-#repos[data-armed="remote"] .remote { text-decoration: underline; }
+@media (hover: hover) {
+  body:not(:has(.card-ghost)) h2.repo-name .remote:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.16em;
+  }
+
+  body:not(:has(.card-ghost)) #repos[data-armed="remote"] .remote:hover:not(.is-over) {
+    background: color-mix(in srgb, var(--green) 12%, transparent);
+  }
+}
+
+#repos[data-armed="remote"] .remote {
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  text-decoration-color: color-mix(in srgb, var(--green) 70%, transparent);
+}
 
 .graph .empty {
   color: var(--muted);
@@ -433,7 +879,9 @@ h2.repo-name .remote {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0;
+  padding: 4px 8px 4px 4px;
+  margin: -4px -8px -4px -4px;
+  border-radius: 8px;
   text-align: left;
   touch-action: none;
   user-select: none;
@@ -447,12 +895,45 @@ h2.repo-name .remote {
   background: var(--commit);
   box-shadow: 0 1px 0 rgba(28, 25, 21, 0.18);
 }
-.graph [data-current="yes"] .dot { background: #2f6b45; }
+
+@media (hover: hover) {
+  body:not(:has(.card-ghost)) .graph .commit:hover:not(.is-over) .dot,
+  .graph .commit.is-dragging .dot {
+    box-shadow:
+      0 2px 0 light-dark(rgb(28 25 21 / 18%), rgb(0 0 0 / 40%)),
+      0 8px 14px light-dark(rgb(28 25 21 / 12%), rgb(0 0 0 / 32%));
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  body:not(:has(.card-ghost)) .graph .commit:hover:not(.is-over) .dot,
+  .graph .commit.is-dragging .dot {
+    transform: scale(1.08);
+  }
+}
+.graph [data-current="yes"] .dot { background: var(--green); }
 .graph .name, .graph .ref {
   font-family: ui-monospace, monospace;
   font-size: 15px;
 }
-.graph .ref { color: var(--muted); cursor: pointer; padding: 0; }
+.graph .ref {
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 6px;
+}
+
+@media (hover: hover) {
+  body:not(:has(.card-ghost)) .graph .ref:hover:not(.is-over) { color: var(--ink); }
+
+  body:not(:has(.card-ghost)) #repos[data-armed="commit"] .repo[data-home="yes"] .commit:hover:not(.is-over),
+  body:not(:has(.card-ghost)) #repos[data-armed="either"] .repo[data-home="yes"] .commit:hover:not(.is-over),
+  body:not(:has(.card-ghost)) #repos[data-armed="ref"] .repo[data-home="yes"] .ref:hover:not(.is-over),
+  body:not(:has(.card-ghost)) #repos[data-armed="either"] .repo[data-home="yes"] .ref:hover:not(.is-over) {
+    background: color-mix(in srgb, var(--green) 12%, transparent);
+  }
+}
 .graph .ref.current { color: var(--ink); font-weight: 700; }
 
 #files ul:empty::after {
@@ -461,92 +942,242 @@ h2.repo-name .remote {
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
 
-.board { margin-top: 28px; }
+.board {
+  display: grid;
+  grid-template-rows: minmax(120px, 38%) minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  margin-top: 0;
+}
 
-.board section, #card-section { margin-top: 0; min-width: 0; }
+.files-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
 
-#card-section { margin-top: 28px; }
+#files {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 14px 12px;
+}
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+#editor-heading {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+  color: var(--ink);
+}
+
+.editor-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+#file-form:not([hidden]) + #editor-empty {
+  display: none;
+}
 
 #files ul, #cards { margin: 0; padding: 0; list-style: none; }
+
+#files li {
+  border-top: 1px solid var(--line);
+}
+
+#files li:first-child {
+  border-top: 0;
+}
 
 #files button {
   display: flex;
   width: 100%;
+  margin-inline: 0;
   justify-content: space-between;
+  align-items: baseline;
   gap: 12px;
-  padding: 8px 0;
+  padding: 7px 10px;
   border: 0;
-  border-top: 1px solid var(--line);
+  border-radius: 6px;
   background: transparent;
   color: inherit;
   text-align: left;
   font-family: ui-monospace, monospace;
-  font-size: 15px;
+  font-size: 14px;
   cursor: pointer;
 }
 
 #files button[aria-current="true"] { color: var(--green); }
 
-#files button[data-state="changed"]::after,
-#files button[data-state="new"]::after,
-#files button[data-state="staged"]::after,
-#files button[data-state="deleted"]::after,
-#files button[data-state="conflict"]::after {
-  color: var(--muted);
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.85rem;
+@media (hover: hover) {
+  body:not(:has(.card-ghost)) #files button:hover:not(.is-over) {
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+  }
+
+  body:not(:has(.card-ghost)) #files[data-armed="yes"] button:hover:not(.is-over) {
+    background: color-mix(in srgb, var(--green) 12%, transparent);
+  }
+
+  body:not(:has(.card-ghost)) #files li:has(> button:hover),
+  body:not(:has(.card-ghost)) #files li:has(> button:hover) + li {
+    border-top-color: transparent;
+  }
 }
 
-#files button[data-state="changed"]::after { content: "changed"; }
-#files button[data-state="new"]::after { content: "new"; }
-#files button[data-state="staged"]::after { content: "staged"; color: var(--staged); }
-#files button[data-state="deleted"]::after { content: "deleted"; color: var(--error); }
-#files button[data-state="conflict"]::after { content: "conflict"; color: var(--error); }
+#files button:active:not(.is-over) {
+  background: color-mix(in srgb, var(--ink) 11%, transparent);
+}
 
-#file-form, #commit-form { margin-top: 12px; }
+#files li:has(> button:active),
+#files li:has(> button:active) + li,
+#files li:has(> button.is-over),
+#files li:has(> button.is-over) + li {
+  border-top-color: transparent;
+}
+
+#files .file-state {
+  color: var(--muted);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.8rem;
+}
+
+#files button[data-state="staged"] .file-state { color: var(--staged); }
+#files button[data-state="deleted"] .file-state,
+#files button[data-state="conflict"] .file-state { color: var(--error); }
+
+#file-form {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 0;
+  padding: 10px 14px 12px;
+  gap: 10px;
+}
 
 #file-text, #commit-message {
   display: block;
   width: 100%;
-  margin-top: 8px;
   padding: 10px 12px;
   border: 1px solid var(--field-line);
+  border-radius: 6px;
   background: var(--field);
   color: inherit;
   font-family: ui-monospace, monospace;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.45;
 }
 
-#file-text { min-height: 140px; resize: vertical; }
+#file-text {
+  flex: 1;
+  min-height: 0;
+  margin-top: 0;
+  resize: none;
+}
 
-#file-form button, #commit-form button, .card button {
-  margin-top: 8px;
-  padding: 8px 14px;
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex: none;
+}
+
+#commit-form {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%);
+  z-index: 25;
+  width: min(calc(100vw - 32px), 480px);
+  margin-top: 0;
+  padding: 14px 16px;
   border: 1px solid var(--ink);
+  border-radius: 10px;
+  background: var(--field);
+  box-shadow: var(--card-shadow);
+}
+
+#commit-form label {
+  display: block;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.commit-form-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+#commit-message {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+@media (hover: hover) {
+  #file-form button:hover, #commit-form button[type="submit"]:hover {
+    background: color-mix(in srgb, var(--ink) 8%, var(--field));
+  }
+}
+
+#file-form button:active, #commit-form button[type="submit"]:active {
+  background: color-mix(in srgb, var(--ink) 14%, var(--field));
+}
+
+#file-form button, #commit-form button[type="submit"], .card button {
+  margin-top: 0;
+  padding: 7px 14px;
+  border: 1px solid var(--ink);
+  border-radius: 6px;
   background: var(--field);
   color: inherit;
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   cursor: pointer;
 }
 
 .card button {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 6px;
   width: 100%;
-  min-height: 124px;
-  margin-top: 0;
-  padding: 10px;
-  border-radius: 12px;
+  height: 100%;
+  min-height: 92px;
+  padding: 8px 10px;
+  border-radius: 9px;
   background: var(--field);
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 2px 6px light-dark(rgb(28 25 21 / 8%), rgb(0 0 0 / 28%));
   text-align: left;
   font-family: ui-monospace, monospace;
-  font-size: 15px;
+  font-size: 12px;
   cursor: grab;
   touch-action: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -557,78 +1188,219 @@ h2.repo-name .remote {
   color: var(--paper);
 }
 
-#files[data-armed="yes"] button { text-decoration: underline; }
+#files[data-armed="yes"] .file-name {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: color-mix(in srgb, var(--green) 70%, transparent);
+}
 
-#repos[data-armed="commit"] .commit,
-#repos[data-armed="either"] .commit,
-#repos[data-armed="ref"] .ref,
-#repos[data-armed="either"] .ref { cursor: pointer; }
+#repos[data-armed="commit"] .repo[data-home="yes"] .commit,
+#repos[data-armed="either"] .repo[data-home="yes"] .commit,
+#repos[data-armed="ref"] .repo[data-home="yes"] .ref,
+#repos[data-armed="either"] .repo[data-home="yes"] .ref { cursor: pointer; }
 
-#repos[data-armed="commit"] .name,
-#repos[data-armed="either"] .name,
-#repos[data-armed="ref"] .ref,
-#repos[data-armed="either"] .ref,
-.commit.is-over .name,
-.ref.is-over,
-.remote.is-over,
-#files button.is-over { text-decoration: underline; }
+#repos[data-armed="commit"] .repo[data-home="yes"] .name,
+#repos[data-armed="either"] .repo[data-home="yes"] .name,
+#repos[data-armed="ref"] .repo[data-home="yes"] .ref,
+#repos[data-armed="either"] .repo[data-home="yes"] .ref {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: color-mix(in srgb, var(--green) 70%, transparent);
+}
+
+.graph .commit.is-over,
+.graph .ref.is-over,
+h2.repo-name .remote.is-over {
+  background: color-mix(in srgb, var(--green) 18%, var(--paper));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--green) 78%, transparent);
+  color: var(--ink);
+}
+
+.graph .commit.is-over .dot {
+  transform: scale(1.1);
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 4px var(--green);
+}
+
+.graph .commit.is-over .name,
+.graph .ref.is-over,
+h2.repo-name .remote.is-over {
+  text-decoration: none;
+}
+
+#files button.is-over {
+  background: color-mix(in srgb, var(--green) 16%, var(--paper));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--green) 78%, transparent);
+  color: var(--ink);
+}
+
+#files button.is-over .file-name {
+  text-decoration: none;
+}
+
+#files button.is-over .file-state {
+  color: color-mix(in srgb, var(--ink) 78%, var(--green));
+}
+
+body:has(.card-ghost),
+body:has(.card-ghost) .card button,
+body:has(.card-ghost) .graph .commit,
+body:has(.card-ghost) .graph .ref,
+body:has(.card-ghost) h2.repo-name .remote,
+body:has(.card-ghost) #files button { cursor: grabbing; }
+
+@media (forced-colors: active) {
+  .graph .commit.is-over,
+  .graph .ref.is-over,
+  h2.repo-name .remote.is-over,
+  #files button.is-over {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+    background: Highlight;
+    color: HighlightText;
+    box-shadow: none;
+    forced-color-adjust: none;
+  }
+
+  .graph .commit.is-over .dot {
+    background: HighlightText;
+    box-shadow: none;
+  }
+}
+
+#card-section {
+  position: relative;
+  margin-top: 0;
+  min-width: 0;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--field) 50%, var(--paper));
+}
+
+.cards-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+  padding: 5px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+#card-section[data-collapsed="yes"] .cards-bar {
+  border-bottom: 0;
+}
+
+#card-section[data-collapsed="yes"] #cards {
+  display: none;
+}
+
+.cards-bar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cards-bar h2 {
+  margin: 0;
+  flex: none;
+}
+
+.card-hint {
+  min-width: 0;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.84rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-hint[data-active="yes"] {
+  color: var(--ink);
+}
 
 #cards {
   display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  min-height: 196px;
-  margin-top: 8px;
-  padding: 48px 48px 4px;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 0;
+  padding: 10px 16px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-color: var(--muted) transparent;
 }
 
 .card {
   position: relative;
-  width: 168px;
-  margin: 0 -34px;
-  transform: rotate(var(--fan, 0deg));
-  transform-origin: center 130%;
-  transition: transform 180ms cubic-bezier(0.2, 0, 0, 1);
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 156px;
+  margin: 0;
 }
 
-.card:hover, .card:focus-within {
-  z-index: 4;
-  transform: rotate(0deg) translateY(-24px);
+.card:has(:focus-visible) button {
+  transform: translateY(-2px);
+}
+
+@media (hover: hover) {
+  body:not(:has(.card-ghost)) .card:hover button:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px light-dark(rgb(28 25 21 / 14%), rgb(0 0 0 / 42%));
+  }
+}
+
+.card:has(:focus-visible) button:not(:disabled) {
+  box-shadow: 0 6px 14px light-dark(rgb(28 25 21 / 14%), rgb(0 0 0 / 42%));
+}
+
+.card.is-dragging,
+.card.is-dragging:hover,
+.card.is-dragging:has(:focus-visible) {
+  z-index: 0;
+  opacity: 0.25;
+  transition: none;
+}
+
+.card.is-dragging button,
+.card.is-dragging:hover button,
+.card.is-dragging:has(:focus-visible) button {
+  transform: none;
+  background: var(--field);
+  color: var(--ink);
+  box-shadow: none;
+  transition: none;
 }
 
 .card img {
   display: block;
   width: 100%;
-  height: 72px;
+  height: 44px;
   object-fit: contain;
   pointer-events: none;
 }
 
 .card .command {
   font-family: ui-monospace, monospace;
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 11.5px;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .card p {
   position: absolute;
-  right: 0;
-  bottom: calc(100% + 8px);
-  left: 0;
-  margin: 0;
-  padding: 8px 10px;
-  background: var(--ink);
-  color: var(--paper);
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.85rem;
-  line-height: 1.35;
-  opacity: 0;
-  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
-
-.card:hover p, .card:focus-within p { opacity: 1; }
-
-#card-section:has(#commit-form:not([hidden])) .card p { opacity: 0; }
 
 .card-ghost, .card-ghost * { pointer-events: none; }
 
@@ -636,11 +1408,121 @@ h2.repo-name .remote {
   position: fixed;
   z-index: 30;
   margin: 0;
-  transform: rotate(-3deg);
+  transform: rotate(-2deg);
+  transition: none;
+}
+
+.card-ghost button {
+  transform: none;
+  box-shadow: 0 20px 44px light-dark(rgb(28 25 21 / 24%), rgb(0 0 0 / 58%));
+}
+
+@media (max-width: 1023px) {
+  #play {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+  }
+
+  #status {
+    grid-column: 1 / -1;
+    order: 3;
+    white-space: normal;
+  }
+
+  .workspace,
+  .workspace[data-mission="closed"] {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .workspace > * + * {
+    box-shadow: inset 0 1px 0 var(--line);
+  }
+
+  .workspace[data-mission="closed"] > .board {
+    box-shadow: none;
+  }
+
+  .board {
+    grid-template-rows: auto auto;
+  }
+
+  #files {
+    max-height: 220px;
+  }
+
+  #file-text {
+    min-height: 160px;
+    resize: vertical;
+  }
+
+  .graph {
+    max-height: 360px;
+  }
+
+  .terminal-wrap #term {
+    height: 300px;
+  }
+
+  #commit-form {
+    position: static;
+    transform: none;
+    width: auto;
+    margin: 0 16px 12px;
+  }
 }
 
 @media (max-width: 700px) {
-  #cards { padding-right: 28px; padding-left: 28px; }
-  .card { width: 136px; margin: 0 -42px; }
+  .topbar {
+    grid-template-columns: 1fr;
+    padding: 10px 12px;
+  }
+
+  .topbar-title {
+    flex-wrap: wrap;
+    gap: 8px 10px;
+  }
+
+  .top-actions {
+    justify-self: start;
+    flex-wrap: wrap;
+  }
+
+  .card { width: 140px; }
   .card .command { font-size: 11px; }
+  .commit-form-row { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card:hover button, .card:has(:focus-visible) button {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) and (hover: hover) {
+  #levels-open:hover, #levels-close:hover, .theme:hover,
+  #mission-toggle:hover, #mission-collapse:hover, #cards-toggle:hover,
+  #next:hover:not(:disabled),
+  #file-form button:hover, #commit-form button:hover,
+  #files button:hover:not(.is-over) {
+    background: Highlight;
+    color: HighlightText;
+    box-shadow: none;
+  }
+
+  #level-list li:has(button:hover)::before {
+    background: Highlight;
+  }
+
+  #level-list li:has(button:hover),
+  #level-list li:has(button:hover) button,
+  #level-list li:has(button:hover) .badge {
+    color: HighlightText;
+  }
 }

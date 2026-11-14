@@ -74,7 +74,7 @@ pnpm dev
 Keep these out of the repository:
 
 - `node_modules/`, `web/dist/`, and the Wasmer cache in `.wasmer/`
-- Wrangler and Cloudflare configuration, including `.wrangler/`, `.dev.vars`, and account files
+- Local Wrangler state and Cloudflare credentials, including `.wrangler/`, `.dev.vars`, and account files
 - `.env` files and other credentials
 - Agent configuration such as `.cursor/`, `.claude/`, `.agents/`, and `.impeccable/`
 
