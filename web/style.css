@@ -150,6 +150,8 @@ html:has(#boot:not([hidden])) {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .splitter::after { transition: background-color 140ms var(--ease); }
+
   button, .credit a, .graph .ref, .graph .dot {
     transition:
       background-color 140ms var(--ease),
@@ -166,7 +168,7 @@ html:has(#boot:not([hidden])) {
       border-color 140ms var(--ease);
   }
 
-  #levels-open:active, #levels-close:active, .theme:active,
+  #levels-open:active, #levels-close:active, .about-open:active, #about-close:active, .theme:active,
   #mission-toggle:active, #mission-collapse:active, #cards-toggle:active,
   #next:active:not(:disabled),
   #file-form button:active, #commit-form button:active {
@@ -341,9 +343,9 @@ h2 {
   flex: none;
 }
 
-#picker .top-actions { margin-top: 16px; }
+#picker .top-actions, #about .top-actions { margin-top: 16px; }
 
-#levels-open, #levels-close, .theme {
+#levels-open, #levels-close, .about-open, #about-close, .theme {
   padding: 5px 11px;
   border: 1px solid var(--ink);
   border-radius: 6px;
@@ -354,13 +356,29 @@ h2 {
   cursor: pointer;
 }
 
+.theme {
+  display: inline-grid;
+  place-items: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  padding: 0;
+}
+
+.theme .to-dark,
+.theme .to-light {
+  display: grid;
+  place-items: center;
+}
+
+.theme svg { display: block; }
+
 @media (hover: hover) {
-  #levels-open:hover, #levels-close:hover, .theme:hover, .topbar-btn:hover {
+  #levels-open:hover, #levels-close:hover, .about-open:hover, #about-close:hover, .theme:hover, .topbar-btn:hover {
     background: color-mix(in srgb, var(--ink) 10%, transparent);
   }
 }
 
-#levels-open:active, #levels-close:active, .theme:active, .topbar-btn:active {
+#levels-open:active, #levels-close:active, .about-open:active, #about-close:active, .theme:active, .topbar-btn:active {
   background: color-mix(in srgb, var(--ink) 16%, transparent);
 }
 
@@ -368,14 +386,14 @@ h2 {
 
 @media (prefers-color-scheme: dark) {
   :root:has(> head > meta[name="color-scheme"][content="light dark"]) .theme .to-dark { display: none; }
-  :root:has(> head > meta[name="color-scheme"][content="light dark"]) .theme .to-light { display: inline; }
+  :root:has(> head > meta[name="color-scheme"][content="light dark"]) .theme .to-light { display: grid; }
 }
 
 :root:has(> head > meta[name="color-scheme"][content="dark"]) .theme .to-dark { display: none; }
-:root:has(> head > meta[name="color-scheme"][content="dark"]) .theme .to-light { display: inline; }
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .theme .to-light { display: grid; }
 
 @media (pointer: coarse) {
-  #levels-open, #levels-close, .theme, #next,
+  #levels-open, #levels-close, .about-open, #about-close, .theme, #next,
   #mission-toggle, #mission-collapse, #cards-toggle, #commit-cancel,
   #file-form button, #commit-form button,
   #level-list button, #files button, #completions button {
@@ -392,9 +410,24 @@ h2 {
   }
 }
 
-#picker header p {
+#picker header p, #about header p {
   margin-top: 12px;
-  line-height: 1.45;
+  line-height: 1.5;
+}
+
+#about {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 32px 24px 56px;
+}
+
+#about a {
+  color: inherit;
+  text-underline-offset: 0.18em;
+}
+
+@media (hover: hover) {
+  #about a:hover { text-decoration-thickness: 2px; }
 }
 
 #level-list {
@@ -585,15 +618,79 @@ h2 {
   }
 }
 
+html[data-panes="saved"] {
+  --graph-col: minmax(220px, 1fr);
+}
+
 .workspace {
   display: grid;
   min-height: 0;
   overflow: hidden;
-  grid-template-columns: minmax(230px, min(18%, 275px)) minmax(220px, min(20%, 310px)) minmax(360px, 1fr) minmax(300px, min(26%, 440px));
+  grid-template-columns:
+    minmax(230px, min(18%, 275px))
+    var(--board-col, minmax(220px, min(20%, 310px)))
+    0px
+    var(--graph-col, minmax(360px, 1fr))
+    0px
+    var(--term-col, minmax(300px, min(26%, 440px)));
 }
 
 .workspace[data-mission="closed"] {
-  grid-template-columns: minmax(240px, min(22%, 330px)) minmax(400px, 1fr) minmax(320px, min(28%, 460px));
+  grid-template-columns:
+    var(--board-col, minmax(240px, min(22%, 330px)))
+    0px
+    var(--graph-col, minmax(400px, 1fr))
+    0px
+    var(--term-col, minmax(320px, min(28%, 460px)));
+}
+
+.splitter {
+  position: relative;
+  z-index: 3;
+  width: 0;
+  min-width: 0;
+  min-height: 0;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.workspace > .splitter { box-shadow: none; }
+
+.splitter::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: -7px;
+  width: 14px;
+}
+
+.splitter::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: -1px;
+  width: 2px;
+  background: transparent;
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .splitter:hover::after { background: var(--ink); }
+}
+
+.splitter.is-dragging::after,
+.splitter:focus-visible::after {
+  background: var(--ink);
+}
+
+.splitter:focus-visible {
+  outline: none;
+}
+
+html.is-resizing,
+html.is-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
 }
 
 .workspace[data-mission="closed"] #mission {
@@ -1441,6 +1538,8 @@ body:has(.card-ghost) #files button { cursor: grabbing; }
     overflow: visible;
   }
 
+  .splitter { display: none; }
+
   .workspace > * + * {
     box-shadow: inset 0 1px 0 var(--line);
   }
@@ -1505,8 +1604,26 @@ body:has(.card-ghost) #files button { cursor: grabbing; }
   }
 }
 
+@media (pointer: coarse) {
+  .theme { min-inline-size: 44px; }
+
+  .splitter::before {
+    left: -12px;
+    width: 24px;
+  }
+}
+
+@media (forced-colors: active) {
+  .splitter:focus-visible::after,
+  .splitter.is-dragging::after {
+    background: Highlight;
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
 @media (forced-colors: active) and (hover: hover) {
-  #levels-open:hover, #levels-close:hover, .theme:hover,
+  #levels-open:hover, #levels-close:hover, .about-open:hover, #about-close:hover, .theme:hover,
   #mission-toggle:hover, #mission-collapse:hover, #cards-toggle:hover,
   #next:hover:not(:disabled),
   #file-form button:hover, #commit-form button:hover,

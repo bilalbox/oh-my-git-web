@@ -19,6 +19,38 @@
         if (theme) theme.content = dark ? "#16130f" : "#f4efe6";
       })();
     </script>
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem("oh-my-git-panes");
+          if (!raw || matchMedia("(max-width: 1023px)").matches) return;
+          var saved = JSON.parse(raw);
+          if (!saved || typeof saved.board !== "number" || typeof saved.term !== "number") return;
+          if (!isFinite(saved.board) || !isFinite(saved.term)) return;
+          var board = Math.max(200, saved.board);
+          var term = Math.max(240, saved.term);
+          var total = document.documentElement.clientWidth || window.innerWidth;
+          var mission = Math.min(275, Math.max(230, total * 0.18));
+          var overflow = board + term + 220 - (total - mission);
+          if (overflow > 0) {
+            var spareBoard = board - 200;
+            var spareTerm = term - 240;
+            var spare = spareBoard + spareTerm;
+            if (spare <= overflow) {
+              board = 200;
+              term = 240;
+            } else {
+              board -= overflow * (spareBoard / spare);
+              term -= overflow * (spareTerm / spare);
+            }
+          }
+          var root = document.documentElement;
+          root.dataset.panes = "saved";
+          root.style.setProperty("--board-col", Math.round(board) + "px");
+          root.style.setProperty("--term-col", Math.round(term) + "px");
+        } catch (error) {}
+      })();
+    </script>
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
@@ -51,7 +83,8 @@
           <p id="status" role="status">Starting…</p>
           <div class="top-actions">
             <button type="button" id="next" hidden>Next level</button>
-            <button type="button" class="theme"><span class="to-dark"><span class="visually-hidden">Switch to </span>Dark</span><span class="to-light"><span class="visually-hidden">Switch to </span>Light</span></button>
+            <button type="button" class="theme"><span class="to-dark"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3a7 7 0 0 0 11.5 11.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="visually-hidden">Switch to dark theme</span></span><span class="to-light"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="visually-hidden">Switch to light theme</span></span></button>
+            <button type="button" class="about-open">About</button>
             <button type="button" id="levels-open">Levels</button>
           </div>
         </header>
@@ -70,13 +103,10 @@
                 <h2>Goal</h2>
                 <ul id="wins"></ul>
               </section>
-              <footer class="credit">
-                <p>A web port of <a href="https://github.com/git-learning-game/oh-my-git">Oh My Git!</a> by bleeptrack and blinry, with funding from the <a href="https://www.prototypefund.de">Prototype Fund</a>. Licensed under the <a href="https://blueoakcouncil.org/license/1.0.0">Blue Oak Model License 1.0.0</a>.</p>
-              </footer>
             </div>
           </aside>
 
-          <section class="board" aria-label="Files and editor">
+          <section class="board" id="files-editor" aria-label="Files and editor">
             <div class="files-pane">
               <div class="pane-head">
                 <h2>Files</h2>
@@ -97,11 +127,15 @@
             </div>
           </section>
 
-          <section class="graph-pane" aria-label="Commit graph">
+          <div id="split-board" class="splitter" role="separator" aria-orientation="vertical" aria-controls="files-editor" aria-label="Resize files and editor" aria-valuemin="200" aria-valuemax="800" aria-valuenow="280" tabindex="0"></div>
+
+          <section class="graph-pane" id="commits" aria-label="Commit graph">
             <div id="repos"></div>
           </section>
 
-          <section class="terminal-wrap" aria-label="Terminal">
+          <div id="split-term" class="splitter" role="separator" aria-orientation="vertical" aria-controls="terminal" aria-label="Resize terminal" aria-valuemin="240" aria-valuemax="800" aria-valuenow="360" tabindex="0"></div>
+
+          <section class="terminal-wrap" id="terminal" aria-label="Terminal">
             <div class="pane-head">
               <h2>yours</h2>
             </div>
@@ -137,11 +171,24 @@
           <h1>Levels</h1>
           <p>Solved levels stay marked. A command-line badge means you finished that level without playing a card.</p>
           <div class="top-actions">
-            <button type="button" class="theme"><span class="to-dark"><span class="visually-hidden">Switch to </span>Dark</span><span class="to-light"><span class="visually-hidden">Switch to </span>Light</span></button>
+            <button type="button" class="theme"><span class="to-dark"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3a7 7 0 0 0 11.5 11.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="visually-hidden">Switch to dark theme</span></span><span class="to-light"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="visually-hidden">Switch to light theme</span></span></button>
+            <button type="button" class="about-open">About</button>
             <button type="button" id="levels-close">Back to the level</button>
           </div>
         </header>
         <div id="level-list"></div>
+      </div>
+      <div id="about" hidden>
+        <header>
+          <p class="eyebrow">Oh My Git!</p>
+          <h1>About</h1>
+          <p>A web port of <a href="https://github.com/git-learning-game/oh-my-git">Oh My Git!</a> by bleeptrack and blinry, with funding from the <a href="https://www.prototypefund.de">Prototype Fund</a>. Licensed under the <a href="https://blueoakcouncil.org/license/1.0.0">Blue Oak Model License 1.0.0</a>.</p>
+          <p>Source for this web port: <a href="https://github.com/bilalbox/oh-my-git-web">github.com/bilalbox/oh-my-git-web</a>.</p>
+          <div class="top-actions">
+            <button type="button" class="theme"><span class="to-dark"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3a7 7 0 0 0 11.5 11.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="visually-hidden">Switch to dark theme</span></span><span class="to-light"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="visually-hidden">Switch to light theme</span></span></button>
+            <button type="button" id="about-close">Back to the level</button>
+          </div>
+        </header>
       </div>
     </main>
     <script type="module" src="/main.js"></script>

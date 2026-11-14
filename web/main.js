@@ -42,6 +42,8 @@ const missionTally = document.querySelector("#mission-tally");
 const cardsToggle = document.querySelector("#cards-toggle");
 const cardHint = document.querySelector("#card-hint");
 const picker = document.querySelector("#picker");
+const about = document.querySelector("#about");
+const aboutClose = document.querySelector("#about-close");
 const levelList = document.querySelector("#level-list");
 const boot = document.querySelector("#boot");
 const bootMessage = document.querySelector("#boot-message");
@@ -144,6 +146,208 @@ window.addEventListener("storage", (event) => {
   setScheme(event.newValue === "dark" || event.newValue === "light" ? event.newValue : "light dark");
 });
 
+const panesKey = "oh-my-git-panes";
+const boardMin = 200;
+const termMin = 240;
+const graphMin = 220;
+const narrowPanes = matchMedia("(max-width: 1023px)");
+const boardPane = document.querySelector(".board");
+const graphPane = document.querySelector(".graph-pane");
+const termPane = document.querySelector(".terminal-wrap");
+const boardSplit = document.querySelector("#split-board");
+const termSplit = document.querySelector("#split-term");
+let boardWant = null;
+let termWant = null;
+let aboutReturn = "play";
+
+function missionSpan() {
+  if (workspace.dataset.mission !== "open") return 0;
+  return Math.min(275, Math.max(230, workspace.clientWidth * 0.18));
+}
+
+function fitPanes(board, term) {
+  const room = workspace.clientWidth - missionSpan();
+  let nextBoard = Math.max(boardMin, board);
+  let nextTerm = Math.max(termMin, term);
+  const overflow = nextBoard + nextTerm + graphMin - room;
+  if (overflow > 0) {
+    const spareBoard = nextBoard - boardMin;
+    const spareTerm = nextTerm - termMin;
+    const spare = spareBoard + spareTerm;
+    if (spare <= overflow) {
+      nextBoard = boardMin;
+      nextTerm = termMin;
+    } else {
+      nextBoard -= overflow * (spareBoard / spare);
+      nextTerm -= overflow * (spareTerm / spare);
+    }
+  }
+  return { board: Math.round(nextBoard), term: Math.round(nextTerm) };
+}
+
+function clampBoard(board, term) {
+  const max = Math.max(boardMin, workspace.clientWidth - missionSpan() - term - graphMin);
+  return Math.round(Math.min(Math.max(board, boardMin), max));
+}
+
+function clampTerm(term, board) {
+  const max = Math.max(termMin, workspace.clientWidth - missionSpan() - board - graphMin);
+  return Math.round(Math.min(Math.max(term, termMin), max));
+}
+
+function rememberPanes(board, term, store) {
+  boardWant = board;
+  termWant = term;
+  const root = document.documentElement;
+  root.dataset.panes = "saved";
+  root.style.setProperty("--board-col", `${board}px`);
+  root.style.setProperty("--term-col", `${term}px`);
+  if (!store) return;
+  try {
+    localStorage.setItem(panesKey, JSON.stringify({ board, term }));
+  } catch (error) {}
+  syncSplitters();
+}
+
+function setRange(node, now, min, max, text) {
+  const lo = Math.round(Math.min(min, now));
+  const hi = Math.round(Math.max(max, now, lo));
+  const value = Math.round(Math.min(hi, Math.max(lo, now)));
+  node.setAttribute("aria-valuemin", String(lo));
+  node.setAttribute("aria-valuemax", String(hi));
+  node.setAttribute("aria-valuenow", String(value));
+  node.setAttribute("aria-valuetext", text);
+}
+
+function syncSplitters() {
+  if (narrowPanes.matches || workspace.clientWidth === 0) return;
+  const total = workspace.clientWidth;
+  const mission = missionSpan();
+  const board = Math.round(boardPane.getBoundingClientRect().width);
+  const term = Math.round(termPane.getBoundingClientRect().width);
+  const graph = Math.round(graphPane.getBoundingClientRect().width);
+  setRange(boardSplit, board, boardMin, total - mission - term - graphMin, `${board} pixels for files and editor`);
+  setRange(
+    termSplit,
+    total - term,
+    mission + board + graphMin,
+    total - termMin,
+    `${graph} pixels for commits, ${term} pixels for the terminal`,
+  );
+}
+
+function applyWants() {
+  if (narrowPanes.matches || workspace.clientWidth === 0) return;
+  if (boardWant == null || termWant == null) {
+    syncSplitters();
+    return;
+  }
+  const fitted = fitPanes(boardWant, termWant);
+  const root = document.documentElement;
+  root.dataset.panes = "saved";
+  root.style.setProperty("--board-col", `${fitted.board}px`);
+  root.style.setProperty("--term-col", `${fitted.term}px`);
+  syncSplitters();
+}
+
+function loadPanes() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(panesKey) || "null");
+    if (!saved || !Number.isFinite(saved.board) || !Number.isFinite(saved.term)) return;
+    if (saved.board < 0 || saved.term < 0 || saved.board > 4000 || saved.term > 4000) return;
+    boardWant = saved.board;
+    termWant = saved.term;
+  } catch (error) {}
+}
+
+function bindPaneKeys(node, change) {
+  node.addEventListener("keydown", (event) => {
+    if (narrowPanes.matches) return;
+    const step = event.shiftKey ? 64 : 16;
+    const board = boardPane.getBoundingClientRect().width;
+    const term = termPane.getBoundingClientRect().width;
+    const next = change(event.key, step, board, term);
+    if (!next) return;
+    event.preventDefault();
+    rememberPanes(next.board, next.term, true);
+  });
+}
+
+function bindPaneDrag(node, resize) {
+  node.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || narrowPanes.matches) return;
+    node.setPointerCapture(event.pointerId);
+    event.preventDefault();
+    const startX = event.clientX;
+    const startBoard = boardPane.getBoundingClientRect().width;
+    const startTerm = termPane.getBoundingClientRect().width;
+    let frame = 0;
+    let lastX = startX;
+    let moved = false;
+    node.classList.add("is-dragging");
+    document.documentElement.classList.add("is-resizing");
+    const move = (ev) => {
+      lastX = ev.clientX;
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const delta = lastX - startX;
+        if (Math.abs(delta) < 1) return;
+        moved = true;
+        const next = resize(delta, startBoard, startTerm);
+        rememberPanes(next.board, next.term, false);
+      });
+    };
+    const end = () => {
+      if (frame) cancelAnimationFrame(frame);
+      node.classList.remove("is-dragging");
+      document.documentElement.classList.remove("is-resizing");
+      node.removeEventListener("pointermove", move);
+      node.removeEventListener("pointerup", end);
+      node.removeEventListener("pointercancel", end);
+      if (moved && boardWant != null) {
+        try {
+          localStorage.setItem(panesKey, JSON.stringify({ board: boardWant, term: termWant }));
+        } catch (error) {}
+      }
+      syncSplitters();
+    };
+    node.addEventListener("pointermove", move);
+    node.addEventListener("pointerup", end);
+    node.addEventListener("pointercancel", end);
+  });
+}
+
+loadPanes();
+applyWants();
+bindPaneKeys(boardSplit, (key, step, board, term) => {
+  const fixed = Math.round(term);
+  if (key === "ArrowRight") return { board: clampBoard(board + step, term), term: fixed };
+  if (key === "ArrowLeft") return { board: clampBoard(board - step, term), term: fixed };
+  if (key === "Home") return { board: boardMin, term: fixed };
+  if (key === "End") return { board: clampBoard(4000, term), term: fixed };
+  return null;
+});
+bindPaneKeys(termSplit, (key, step, board, term) => {
+  const fixed = Math.round(board);
+  if (key === "ArrowRight") return { board: fixed, term: clampTerm(term - step, board) };
+  if (key === "ArrowLeft") return { board: fixed, term: clampTerm(term + step, board) };
+  if (key === "Home") return { board: fixed, term: clampTerm(4000, board) };
+  if (key === "End") return { board: fixed, term: termMin };
+  return null;
+});
+bindPaneDrag(boardSplit, (delta, startBoard, startTerm) => ({
+  board: clampBoard(startBoard + delta, startTerm),
+  term: Math.round(startTerm),
+}));
+bindPaneDrag(termSplit, (delta, startBoard, startTerm) => ({
+  board: Math.round(startBoard),
+  term: clampTerm(startTerm - delta, startBoard),
+}));
+if (typeof ResizeObserver !== "undefined") new ResizeObserver(() => applyWants()).observe(workspace);
+else window.addEventListener("resize", applyWants);
+narrowPanes.addEventListener("change", applyWants);
+
 let session;
 let catalog;
 let levels = [];
@@ -185,6 +389,7 @@ function setMissionOpen(open) {
   workspace.dataset.mission = open ? "open" : "closed";
   missionToggle.setAttribute("aria-expanded", open ? "true" : "false");
   missionCollapse.setAttribute("aria-expanded", open ? "true" : "false");
+  applyWants();
   scheduleFit();
 }
 
@@ -353,9 +558,33 @@ function noteSolve() {
 function showPlay() {
   const returnFocus = !picker.hidden;
   picker.hidden = true;
+  about.hidden = true;
   play.hidden = false;
   fit.fit();
   if (returnFocus) document.querySelector("#levels-open").focus();
+  syncSplitters();
+}
+
+function showAbout(from) {
+  aboutReturn = from;
+  aboutClose.textContent = from === "picker" ? "Back to levels" : "Back to the level";
+  play.hidden = true;
+  picker.hidden = true;
+  about.hidden = false;
+  aboutClose.focus();
+}
+
+function closeAbout() {
+  about.hidden = true;
+  if (aboutReturn === "picker") {
+    picker.hidden = false;
+    document.querySelector("#picker .about-open").focus();
+    return;
+  }
+  play.hidden = false;
+  fit.fit();
+  document.querySelector("#play .about-open").focus();
+  syncSplitters();
 }
 
 function showPicker() {
@@ -364,6 +593,7 @@ function showPicker() {
     if (id !== currentId) void showLevel(id);
   });
   play.hidden = true;
+  about.hidden = true;
   picker.hidden = false;
   document.querySelector("#levels-close").focus();
 }
@@ -866,8 +1096,17 @@ document.querySelector("#levels-open").addEventListener("click", () => {
 });
 
 document.querySelector("#levels-close").addEventListener("click", showPlay);
+for (const button of document.querySelectorAll(".about-open")) {
+  button.addEventListener("click", () => showAbout(button.closest("#picker") ? "picker" : "play"));
+}
+aboutClose.addEventListener("click", closeAbout);
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
+  if (!about.hidden) {
+    event.preventDefault();
+    closeAbout();
+    return;
+  }
   if (!commitForm.hidden) {
     event.preventDefault();
     cancelCommitForm();
